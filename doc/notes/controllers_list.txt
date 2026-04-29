@@ -1,0 +1,87 @@
+1. smm_joint_effort_test_controller
+   Purpose: verify command interface only.
+   Law:
+     τ = user-defined constant/vector
+   Tests:
+     joint ordering, signs, effort units, saturation.
+
+2. smm_joint_pd_controller
+   Purpose: stable joint-space tracking without custom dynamics.
+   Law:
+     τ = Kp(qd − q) + Kd(q̇d − q̇)
+   Tests:
+     measured q, q̇, command direction, gains, stability.
+
+3. smm_gravity_compensation_controller
+   Purpose: first real smm_screws dynamics test.
+   Law:
+     τ = G(q)
+   Tests:
+     gravity vector correctness, torque signs, frame consistency.
+
+4. smm_pd_plus_gravity_controller
+   Purpose: stable holding/tracking with gravity support.
+   Law:
+     τ = Kp(qd − q) + Kd(q̇d − q̇) + G(q)
+   Tests:
+     whether G(q) helps instead of destabilizes.
+
+5. smm_mass_matrix_test_controller
+   Purpose: test M(q) contribution.
+   Law:
+     τ = M(q) q̈cmd + G(q)
+   Use very small q̈cmd.
+   Tests:
+     mass matrix scale, symmetry, positive definiteness, torque magnitude.
+
+6. smm_inverse_dynamics_joint_controller
+   Purpose: full joint-space inverse dynamics.
+   Law:
+     τ = M(q)[q̈d + Kd(q̇d − q̇) + Kp(qd − q)] + C(q,q̇)q̇ + G(q)
+   Tests:
+     full M, C, G validity.
+
+7. smm_computed_torque_trajectory_controller
+   Purpose: smooth trajectory tracking.
+   Law:
+     same inverse dynamics law, but qd, q̇d, q̈d come from trajectory generator.
+   Tests:
+     dynamic performance under motion.
+
+8. smm_task_space_kinematic_controller
+   Purpose: test Jacobian before Cartesian dynamics.
+   Law:
+     q̇cmd = J⁺(xdot_des + Kx ex)
+   Could output position/velocity commands first.
+   Tests:
+     J(q), TCP frame, task-space error.
+
+9. smm_operational_space_pd_controller
+   Purpose: first Cartesian effort control.
+   Law:
+     τ = Jᵀ[Kp(xd − x) + Kd(ẋd − ẋ)]
+   Tests:
+     Jacobian transpose force mapping.
+
+10. smm_operational_space_inverse_dynamics_controller
+    Purpose: test your IDOSC/RIDOSC foundation.
+    Law:
+      τ = M(q)J⁻¹[ẍd + Kd ẋe + Kp xe − J̇q̇] + Cq̇ + G
+    or your screw-theory equivalent.
+    Tests:
+      J, J̇, M, C, G together.
+
+11. smm_cartesian_impedance_controller
+    Purpose: impedance behavior.
+    Law:
+      F = Md(ẍd − ẍ) + Dd(ẋd − ẋ) + Kd(xd − x)
+      τ = JᵀF + G(q)
+    Tests:
+      controlled compliance.
+
+12. smm_robust_adaptive_impedance_controller
+    Purpose: final PhD controller.
+    Adds:
+      robust term
+      adaptive/fuzzy/neural gain logic
+      uncertainty compensation

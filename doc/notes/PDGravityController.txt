@@ -1,0 +1,35 @@
+In order to use custom dynamics we add a "dynamics adapter layer" between smm_controllers <-> smm_screws.
+
+smm_controllers
+├── smm_controller_core
+│   ├── common ROS 2 control utilities
+│   └── SmmDynamicsAdapter
+│
+├── smm_joint_space_controllers
+│   ├── JointPDEffortController
+│   └── PDGravityController
+│
+└── later:
+    smm_task_space_controllers
+    
+>> The controller should not inherit from smm_screws classes directly.
+>> Controller plugin -> SmmDynamicsAdapter -> smm_screws RobotContextNdof / Dynamics object
+
+Control law:
+
+τ_i = Kp_i(q_des − q) + Kd_i(dq_des − dq) + G
+
+Controller architecture. Now we connect with smm_screws!
+
+PDGravityController
+  └── SmmDynamicsAdapter
+        ├── reads assembly.yaml
+        ├── counts active pseudojoints
+        ├── creates correct RobotAbstractBaseNdof subclass
+        ├── creates RobotContextNdof
+        ├── initializes shared library
+        └── computes G(q)
+        
+>> Add the dynamics adapter header
+>> Add the dynamics adapter source
+

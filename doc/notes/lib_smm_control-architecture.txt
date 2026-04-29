@@ -1,0 +1,73 @@
+Pkg architecture:
+
+smm_controllers/
+├── include/smm_controllers/
+│   ├── common/
+│   │   ├── smm_controller_base.hpp
+│   │   ├── smm_realtime_buffers.hpp
+│   │   └── smm_dynamics_interface.hpp
+│   │
+│   ├── joint_space/
+│   │   ├── joint_pd_controller.hpp
+│   │   ├── gravity_compensation_controller.hpp
+│   │   ├── pd_gravity_controller.hpp
+│   │   └── inverse_dynamics_controller.hpp
+│   │
+│   └── task_space/
+│       ├── jacobian_transpose_controller.hpp
+│       ├── operational_space_controller.hpp
+│       └── cartesian_impedance_controller.hpp
+│
+├── src/
+│   ├── common/
+│   ├── joint_space/
+│   └── task_space/
+│
+├── config/
+│   ├── joint_pd_controller.yaml
+│   ├── gravity_compensation_controller.yaml
+│   └── inverse_dynamics_controller.yaml
+│
+├── smm_controllers.xml
+├── CMakeLists.txt
+└── package.xml
+
+Design: One plugin class per controller type
+
+smm_controllers/JointPDController
+smm_controllers/GravityCompensationController
+smm_controllers/PDGravityController
+smm_controllers/InverseDynamicsController
+smm_controllers/CartesianImpedanceController
+
+This is most user-friendly because users can load controllers like normal ROS 2 controllers!
+
+Use shared lib! One internal shared library for common functionality!
+
+smm_controller_core
+
+contains:
+
+joint-name loading
+state-interface extraction
+command-interface writing
+parameter validation
+dynamics object creation from smm_screws
+safety clamps
+matrix/vector helpers
+
+Separate plugin library per family!
+
+libsmm_joint_space_controllers.so
+libsmm_task_space_controllers.so
+
+It matches ROS 2 community expectations:
+one controller = one plugin
+configured by YAML
+loaded by controller_manager
+reusable in Gazebo and hardware
+
+
+
+
+

@@ -1,0 +1,67 @@
+Target structure:
+
+smm_controllers/
+├── include/smm_controllers/core/
+│   └── smm_controller_utils.hpp
+├── include/smm_controllers/joint_space/
+│   └── joint_pd_effort_controller.hpp
+├── src/core/
+│   └── smm_controller_utils.cpp
+├── src/joint_space/
+│   └── joint_pd_effort_controller.cpp
+├── config/
+│   └── joint_pd_effort_controller.yaml
+├── smm_joint_space_controllers.xml
+├── CMakeLists.txt
+└── package.xml
+
+============================================================
+Reconfigurable-modular controller configuration!!!!!!!!!!!!!
+>> Always we follow these principles.
+>> The active_joint_names.yaml file is the single source of truth for controller dimensionality and joint ordering!!!!!
+============================================================
+smm_synthesis
+  generates active_joint_names.yaml
+        ↓
+smm_gazebo_sim
+  generates controller YAML at runtime
+        ↓
+controller_manager
+  loads custom controller plugin
+        ↓
+custom controller
+  reads joints parameter
+  allocates vectors/matrices with size N
+============================================================
+SMM DNA / assembly YAML
+        ↓
+smm_synthesis Xacro + extractors
+        ↓
+active_joint_names.yaml
+        ↓
+runtime controller YAML generator
+        ↓
+ros2_control controller_manager
+        ↓
+N-DOF custom controller plugin
+        ↓
+τ ∈ R^N
+============================================================
+
+JointPDEffortController
+
+command interface:
+  joint_i/effort
+
+state interfaces:
+  joint_i/position
+  joint_i/velocity
+  
+Control law:
+
+τ_i = Kp_i(q_des − q) + Kd_i(dq_des − dq)
+
+Initial state:
+q̇d = 0
+qd = initial joint position
+>> So it behaves as a hold-position effort controller.
