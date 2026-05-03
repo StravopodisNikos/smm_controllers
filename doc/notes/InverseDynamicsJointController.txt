@@ -1,0 +1,26 @@
+τ = M(q) [q̈d + Kd(q̇d − q̇) + Kp(qd − q)] + C(q,q̇) q̇ + G(q)
+
+Steps for ros2 implementation:
+
+1. Extend SmmDynamicsAdapter:
+   computeJointDynamics(q, qdot, M, C, G)
+
+2. Add InverseDynamicsJointController plugin
+
+3. Add it to plugin XML + CMake
+
+4. Add controller_type:=joint_inverse_dynamics to the generator
+
+5. Test in Gazebo with q_des = fixed target
+
+HOW TO TEST:
+1. SPAWN ROBOT+CONTROLLER
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py   controller_type:=joint_inverse_dynamics
+
+2. SEND COMMAND:
+ros2 run smm_controllers send_joint_goal.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml \
+  --goal-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_goal_6dof.yaml \
+  --goal small_joint2_test \
+  --publish-rate-hz 2.0 \
+  --publish-duration-sec 3.0

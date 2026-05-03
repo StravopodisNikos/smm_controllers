@@ -212,4 +212,83 @@ bool SmmDynamicsAdapter::computeGravity(
   return true;
 }
 
+bool SmmDynamicsAdapter::computeJointDynamics(
+  const Eigen::VectorXd & q,
+  const Eigen::VectorXd & qdot,
+  Eigen::MatrixXd & mass_matrix,
+  Eigen::MatrixXd & coriolis_matrix,
+  Eigen::VectorXd & gravity)
+{
+  if (!robot_context_ndof_) {
+    return false;
+  }
+
+  if (q.size() != dof_ || qdot.size() != dof_) {
+    return false;
+  }
+
+  auto & dyn = robot_context_ndof_->get_dynamics();
+
+  for (int i = 0; i < dof_; ++i) {
+    q_float_[static_cast<std::size_t>(i)] = static_cast<float>(q(i));
+    qdot_float_[static_cast<std::size_t>(i)] = static_cast<float>(qdot(i));
+    qddot_zero_[static_cast<std::size_t>(i)] = 0.0f;
+  }
+
+  dyn.updateJointState(
+    q_float_.data(),
+    qdot_float_.data(),
+    qddot_zero_.data());
+
+  const auto rep = gravity_representation_;
+
+  if (rep == ScrewsDynamicsNdof::DynamicsRepresentation::BODY) {
+    dyn.ForwardKinematicsTCP(q_float_.data());
+    dyn.computeBodyJacobiansFrames2();
+
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> M_f =
+      dyn.MassMatrix(
+        rep,
+        ScrewsDynamicsNdof::BodyFrameSelection::JOINT);
+
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> C_f =
+      dyn.CoriolisMatrix(rep);
+
+    dyn.ForwardKinematicsCOM(q_float_.data());
+    dyn.computeBodyCOMJacobiansFrames();
+
+    const Eigen::Matrix<float, Eigen::Dynamic, 1> G_f =
+      dyn.GravityVector(rep);
+
+    mass_matrix = M_f.cast<double>();
+    coriolis_matrix = C_f.cast<double>();
+    gravity = G_f.cast<double>();
+  } else {
+    dyn.ForwardKinematicsTCP(q_float_.data());
+
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> M_f =
+      dyn.MassMatrix(rep);
+
+    const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> C_f =
+      dyn.CoriolisMatrix(rep);
+
+    dyn.ForwardKinematicsCOM(q_float_.data());
+
+    const Eigen::Matrix<float, Eigen::Dynamic, 1> G_f =
+      dyn.GravityVector(rep);
+
+    mass_matrix = M_f.cast<double>();
+    coriolis_matrix = C_f.cast<double>();
+    gravity = G_f.cast<double>();
+  }
+
+  return (
+    mass_matrix.rows() == dof_ &&
+    mass_matrix.cols() == dof_ &&
+    coriolis_matrix.rows() == dof_ &&
+    coriolis_matrix.cols() == dof_ &&
+    gravity.size() == dof_);
+}
+
 }  // namespace smm_controllers
+

@@ -28,6 +28,13 @@ public:
     const Eigen::VectorXd & qdot,
     Eigen::VectorXd & gravity);
 
+  bool computeJointDynamics(
+    const Eigen::VectorXd & q,
+    const Eigen::VectorXd & qdot,
+    Eigen::MatrixXd & mass_matrix,
+    Eigen::MatrixXd & coriolis_matrix,
+    Eigen::VectorXd & gravity);  
+
 private:
   std::unique_ptr<RobotContextNdof> robot_context_ndof_;
 
@@ -40,6 +47,9 @@ private:
   std::vector<float> q_float_;
   std::vector<float> qdot_float_;
   std::vector<float> qddot_zero_;
+
+  std::string dynamics_representation_str_{"body"};
+  std::string body_frame_selection_str_{"joint"}; 
 
   static ScrewsDynamicsNdof::DynamicsRepresentation parseRepresentation(
     const std::string & representation);

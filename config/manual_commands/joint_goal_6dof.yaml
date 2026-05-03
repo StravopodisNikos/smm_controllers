@@ -1,0 +1,10 @@
+# config/manual_commands/joint_goal_6dof.yaml
+
+description: "Manual 6-DOF joint-space test command. Joint names are loaded at runtime from active_joint_names.yaml."
+
+goals:
+  small_joint2_test:
+    positions: [0.0, -0.4, 0.0, 0.0, 0.0, 0.0]
+    velocities: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    time_from_start: 2.0

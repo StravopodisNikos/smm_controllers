@@ -16,4 +16,12 @@
       N-DOF joint-space PD plus screw-theory gravity compensation controller for Serial Metamorphic Manipulators.
     </description>
   </class>
+  <class
+    name="smm_controllers/InverseDynamicsJointController"
+    type="smm_controllers::InverseDynamicsJointController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      N-DOF joint-space inverse dynamics computed-torque controller for Serial Metamorphic Manipulators.
+    </description>
+  </class>
 </library>

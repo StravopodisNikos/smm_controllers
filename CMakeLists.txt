@@ -36,9 +36,11 @@ target_link_libraries(smm_controller_core
     smm_screws::robot_yaml_loader_ndof
 )
 
+# Here add each new developed controller 
 add_library(smm_joint_space_controllers SHARED
   src/joint_space/joint_pd_effort_controller.cpp
   src/joint_space/pd_gravity_controller.cpp
+  src/joint_space/inverse_dynamics_joint_controller.cpp
 )
 
 target_include_directories(smm_joint_space_controllers PUBLIC
@@ -54,6 +56,8 @@ target_link_libraries(smm_joint_space_controllers
     pluginlib::pluginlib
     rclcpp::rclcpp
     rclcpp_lifecycle::rclcpp_lifecycle
+    std_msgs::std_msgs__rosidl_typesupport_cpp
+    sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
 )
 
 pluginlib_export_plugin_description_file(
@@ -67,6 +71,11 @@ install(
 )
 
 install(
+  DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
+install(
   TARGETS
     smm_controller_core
     smm_joint_space_controllers
@@ -74,6 +83,12 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+install(
+  PROGRAMS
+    scripts/send_joint_goal.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
