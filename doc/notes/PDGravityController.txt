@@ -33,3 +33,12 @@ PDGravityController
 >> Add the dynamics adapter header
 >> Add the dynamics adapter source
 
+-----------------------------------------------------------------------------------------------------------------
+HOW TO TEST:
+-----------------------------------------------------------------------------------------------------------------
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py   controller_type:=pd_gravity   start_rqt_plot:=false
+
+ros2 run smm_controllers send_joint_goal_error_fdbk.py   --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml   --goal-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_goal_6dof.yaml   --goal small_joint2_test   --topic /smm_joint_controller/reference   --controller-name smm_joint_controller   --publish-rate-hz 5.0   --publish-duration-sec 5.0   --error-tolerance 0.001   --stable-time-sec 1.0   --timeout-sec 8.0
+
+
+

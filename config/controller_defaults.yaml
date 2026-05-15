@@ -1,22 +1,30 @@
 controllers:
   joint_pd_effort:
-    kp: 100.0
-    kd: 10.0
+    kp: 700.0
+    kd: 50.0
     hold_initial_position: true
+    q_des: []
+    qdot_des: []
+
+  publish_error_state: true
 
   pd_gravity:
-    kp: 25.0
-    kd: 5.0
+    kp: 150.0
+    kd: 20.0
     hold_initial_position: true
+    q_des: []
+    qdot_des: []
     dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
     gravity_representation: "body"
+    publish_error_state: true
 
   joint_inverse_dynamics:
-    kp: 25.0
-    kd: 5.0
+    kp: 200.0
+    kd: 10.0
     hold_initial_position: false
     qdot_des_default_value: 0.0
     qddot_des_default_value: 0.0
     dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
     dynamics_representation: "body"
     publish_error_state: true
+    trajectory_interpolation_mode: "sync_cubic"

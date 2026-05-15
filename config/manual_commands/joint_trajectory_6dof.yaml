@@ -1,0 +1,27 @@
+description: >
+  Manual 6-DOF joint-space trajectory test command.
+  Joint names are loaded at runtime from active_joint_names.yaml.
+  This file contains numerical command values only.
+
+trajectories:
+  joint2_cubic_test:
+    points:
+      - positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        velocities: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        time_from_start: 0.0
+
+      - positions: [-0.1, 0.15, -0.15, 0.0, 0.0, 0.0]
+        velocities: [-0.1, 0.1, -0.1, 0.0, 0.0, 0.0]
+        accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        time_from_start: 2.0
+
+      - positions: [-0.2, 0.3, -0.3, 0.0, 0.0, 0.0]
+        velocities: [-0.1, 0.1, -0.1, 0.0, 0.0, 0.0]
+        accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        time_from_start: 4.0
+
+      - positions: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        velocities: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        time_from_start: 7.0

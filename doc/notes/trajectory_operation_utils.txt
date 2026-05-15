@@ -1,0 +1,10 @@
+trajectory_operation_utils
+
+sync_cubic:
+  one scalar s(t) shared by all joints
+  q = q0 + s(t) Δq
+  good for synchronized multi-joint motion
+
+cubic_hermite:
+  per-joint cubic using waypoint velocities
+  good when each joint has explicitly planned velocity boundary conditions

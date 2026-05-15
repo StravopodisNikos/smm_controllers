@@ -4,7 +4,7 @@ description: "Manual 6-DOF joint-space test command. Joint names are loaded at r
 
 goals:
   small_joint2_test:
-    positions: [0.0, -0.4, 0.0, 0.0, 0.0, 0.0]
+    positions: [0.0, 0.25, 0.0, 0.0, 0.0, 0.0]
     velocities: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     accelerations: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     time_from_start: 2.0

@@ -14,6 +14,8 @@ Steps for ros2 implementation:
 5. Test in Gazebo with q_des = fixed target
 
 HOW TO TEST:
+>>> SIMPLE SPAWN + COMMAND
+--------------------------
 1. SPAWN ROBOT+CONTROLLER
 ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py   controller_type:=joint_inverse_dynamics
 
@@ -24,3 +26,87 @@ ros2 run smm_controllers send_joint_goal.py \
   --goal small_joint2_test \
   --publish-rate-hz 2.0 \
   --publish-duration-sec 3.0
+  
+  
+>>> TEST FOR CONTROLLER-SPAWN-COMMAND-ERROR PLOTS
+-------------------------------------------------
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py \
+  controller_type:=joint_inverse_dynamics \
+  start_rqt_plot:=false
+
+ros2 run smm_controllers send_joint_goal_error_fdbk.py   --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml   --goal-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_goal_6dof.yaml   --goal small_joint2_test   --publish-rate-hz 5.0   --publish-duration-sec 15.0   --stop-on-error   --error-tolerance 0.05   --stable-time-sec 0.5   --timeout-sec 20.0 
+
+ros2 run smm_controllers plot_joint_errors.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml
+  
+  
+>>> TEST FOR CONTROLLER-SPAWN-COMMAND-ERROR PLOTS - IN LAUNCH FILE
+------------------------------------------------------------------
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py \
+  controller_type:=joint_inverse_dynamics \
+  start_rqt_plot:=false
+  
+ros2 launch smm_controllers send_joint_goal_with_plot.launch.py \
+  goal:=small_joint2_test \
+  command_delay_sec:=2.0
+  
+  
+
+>>> TEST TRAJECTORY COMMAND
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py \
+  controller_type:=joint_inverse_dynamics \
+  start_rqt_plot:=false
+  
+ros2 run smm_controllers plot_joint_pos_error.py   --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml
+
+-----------------------------------------------------------------------------------------------------------------
+NO SYNC - ONLY INTERPOLATION
+-----------------------------------------------------------------------------------------------------------------
+ros2 run smm_controllers send_joint_trajectory.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml \
+  --trajectory-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_trajectory_6dof.yaml \
+  --trajectory joint2_cubic_test \
+  --publish-count 1
+-----------------------------------------------------------------------------------------------------------------
+SYNC+INTERPOLATION
+-----------------------------------------------------------------------------------------------------------------
+  ros2 run smm_controllers send_joint_trajectory.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml \
+  --trajectory-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_trajectory_6dof.yaml \
+  --trajectory joint2_cubic_test \
+  --publish-count 1 \
+  --interpolation-mode sync_cubic
+-----------------------------------------------------------------------------------------------------------------
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py \
+  controller_type:=joint_inverse_dynamics \
+  start_rqt_plot:=false
+  
+  ros2 run smm_controllers send_joint_trajectory.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml \
+  --trajectory-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_trajectory_6dof.yaml \
+  --trajectory joint2_cubic_test \
+  --publish-count 1 \
+  --interpolation-mode sync_cubic
+  
+  ros2 run rqt_plot rqt_plot \
+  /smm_joint_controller/q_error_0 \
+  /smm_joint_controller/q_error_1 \
+  /smm_joint_controller/q_error_2 \
+  
+  -----------------------------------------------------------------------------------------------------------------
+WORKS! AFTER CLEANUP! 
+-----------------------------------------------------------------------------------------------------------------
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py \
+  controller_type:=joint_inverse_dynamics \
+  start_rqt_plot:=false
+  
+ros2 launch smm_controllers send_joint_goal_with_plot.launch.py
+
+ros2 run smm_controllers send_joint_trajectory.py \
+  --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml \
+  --trajectory-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_trajectory_6dof.yaml \
+  --trajectory joint2_cubic_test \
+  --publish-count 1
