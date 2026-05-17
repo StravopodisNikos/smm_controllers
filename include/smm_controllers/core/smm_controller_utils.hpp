@@ -30,6 +30,16 @@ bool write_vector_to_command_interfaces(
   const std::string & command_name);
 
 // ---------------------------------------------------------------------------
+// Generic JointState message helper
+// ---------------------------------------------------------------------------
+void fill_joint_state_msg(
+  sensor_msgs::msg::JointState & msg,
+  const std::vector<std::string> & joint_names,
+  const Eigen::VectorXd & position,
+  const Eigen::VectorXd & velocity,
+  const Eigen::VectorXd & effort);
+
+// ---------------------------------------------------------------------------
 // Generic debug/error publishing helper
 // ---------------------------------------------------------------------------
 void fill_joint_error_state_msg(

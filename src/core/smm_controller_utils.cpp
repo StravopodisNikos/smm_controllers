@@ -69,12 +69,12 @@ bool write_vector_to_command_interfaces(
   return true;
 }
 
-void fill_joint_error_state_msg(
+void fill_joint_state_msg(
   sensor_msgs::msg::JointState & msg,
   const std::vector<std::string> & joint_names,
-  const Eigen::VectorXd & position_error,
-  const Eigen::VectorXd & velocity_error,
-  const Eigen::VectorXd & effort_command)
+  const Eigen::VectorXd & position,
+  const Eigen::VectorXd & velocity,
+  const Eigen::VectorXd & effort)
 {
   const auto n = joint_names.size();
 
@@ -89,14 +89,29 @@ void fill_joint_error_state_msg(
     const auto idx = static_cast<Eigen::Index>(i);
 
     msg.position[i] =
-      idx < position_error.size() ? position_error(idx) : 0.0;
+      idx < position.size() ? position(idx) : 0.0;
 
     msg.velocity[i] =
-      idx < velocity_error.size() ? velocity_error(idx) : 0.0;
+      idx < velocity.size() ? velocity(idx) : 0.0;
 
     msg.effort[i] =
-      idx < effort_command.size() ? effort_command(idx) : 0.0;
+      idx < effort.size() ? effort(idx) : 0.0;
   }
+}
+
+void fill_joint_error_state_msg(
+  sensor_msgs::msg::JointState & msg,
+  const std::vector<std::string> & joint_names,
+  const Eigen::VectorXd & position_error,
+  const Eigen::VectorXd & velocity_error,
+  const Eigen::VectorXd & effort_command)
+{
+  fill_joint_state_msg(
+    msg,
+    joint_names,
+    position_error,
+    velocity_error,
+    effort_command);
 }
 
 void publish_scalar_error_topics(

@@ -1,0 +1,10 @@
+<library path="smm_cartesian_space_controllers">
+  <class
+    name="smm_controllers/CartesianPDGravityController"
+    type="smm_controllers::CartesianPDGravityController"
+    base_class_type="controller_interface::ControllerInterface">
+    <description>
+      Cartesian position PD controller with joint-space gravity compensation for Serial Metamorphic Manipulators.
+    </description>
+  </class>
+</library>

@@ -73,6 +73,11 @@ private:
   std::vector<rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr> q_error_pubs_;
   std::vector<std_msgs::msg::Float64> q_error_msgs_;
 
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr desired_state_pub_;
+  sensor_msgs::msg::JointState desired_state_msg_;
+
+  bool publish_desired_state_{true};
+
   // ---------------------------------------------------------------------------
   // Realtime reference command handling
   // ---------------------------------------------------------------------------
@@ -176,12 +181,11 @@ private:
 
   bool computeInverseDynamicsCommand();
 
+  void publishDesiredState();
+
   void publishDebugState();
 
   bool writeCommandInterfaces();
-
-
-
 };
 
 }  // namespace smm_controllers

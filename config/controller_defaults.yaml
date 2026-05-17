@@ -5,8 +5,8 @@ controllers:
     hold_initial_position: true
     q_des: []
     qdot_des: []
-
-  publish_error_state: true
+    publish_desired_state: true
+    publish_error_state: true
 
   pd_gravity:
     kp: 150.0
@@ -17,6 +17,7 @@ controllers:
     dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
     gravity_representation: "body"
     publish_error_state: true
+    publish_desired_state: true
 
   joint_inverse_dynamics:
     kp: 200.0
@@ -27,4 +28,36 @@ controllers:
     dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
     dynamics_representation: "body"
     publish_error_state: true
+    publish_desired_state: true
     trajectory_interpolation_mode: "sync_cubic"
+
+  cartesian_pd_gravity:
+    kp_cartesian: [200.0, 200.0, 200.0]
+    kd_cartesian: [10.0, 10.0, 10.0]
+    hold_initial_position: true
+    x_des: []
+    xdot_des: []
+    kinematics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    gravity_representation: "body"
+    fixed_frame: "world"
+    publish_error_state: true
+    publish_desired_state: true
+    publish_current_state: true
+
+  cartesian_pose_pd_gravity:
+    kp_position: [150.0, 150.0, 150.0]
+    kd_position: [25.0, 25.0, 25.0]
+    kp_orientation: [20.0, 20.0, 20.0]
+    kd_orientation: [5.0, 5.0, 5.0]
+    hold_initial_position: true
+    x_des: []
+    xdot_des: []
+    kinematics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    gravity_representation: "body"
+    fixed_frame: "world"
+    publish_error_state: true
+    publish_desired_state: true
+    publish_current_state: true
+    publish_full_debug_state: true  

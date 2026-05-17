@@ -28,6 +28,7 @@ controller_interface::CallbackReturn JointPDEffortController::on_init()
 
     auto_declare<bool>("hold_initial_position", true);
     auto_declare<bool>("publish_error_state", true);
+    auto_declare<bool>("publish_desired_state", true);
 
   } catch (const std::exception & e) {
     RCLCPP_ERROR(
@@ -80,6 +81,9 @@ controller_interface::CallbackReturn JointPDEffortController::on_configure(
 
   hold_initial_position_ =
     get_node()->get_parameter("hold_initial_position").as_bool();
+  
+  publish_desired_state_ =
+    get_node()->get_parameter("publish_desired_state").as_bool();
 
   publish_error_state_ =
     get_node()->get_parameter("publish_error_state").as_bool();
@@ -180,6 +184,18 @@ controller_interface::CallbackReturn JointPDEffortController::on_configure(
     }
   }
 
+  if (publish_desired_state_) {
+    desired_state_pub_ =
+      get_node()->create_publisher<sensor_msgs::msg::JointState>(
+        "~/desired_joint_state",
+        rclcpp::SystemDefaultsQoS());
+
+    desired_state_msg_.name = joint_names_;
+    desired_state_msg_.position.resize(n, 0.0);
+    desired_state_msg_.velocity.resize(n, 0.0);
+    desired_state_msg_.effort.resize(n, 0.0);
+  }
+
   reference_sub_ =
     get_node()->create_subscription<trajectory_msgs::msg::JointTrajectory>(
       "~/reference",
@@ -271,6 +287,7 @@ controller_interface::return_type JointPDEffortController::update(
 
   computePDEffortCommand();
 
+  publishDesiredState();
   publishDebugState();
 
   if (!writeCommandInterfaces()) {
@@ -418,6 +435,22 @@ bool JointPDEffortController::computePDEffortCommand()
   }
 
   return true;
+}
+
+void JointPDEffortController::publishDesiredState()
+{
+  if (!publish_desired_state_ || !desired_state_pub_) {
+    return;
+  }
+
+  fill_joint_state_msg(
+    desired_state_msg_,
+    joint_names_,
+    q_des_eig_,
+    qdot_des_eig_,
+    tau_);
+
+  desired_state_pub_->publish(desired_state_msg_);
 }
 
 void JointPDEffortController::publishDebugState()

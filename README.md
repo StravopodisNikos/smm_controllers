@@ -122,6 +122,23 @@ For `InverseDynamicsJointController`, both single-point commands and multi-point
 
 ---
 
+## Desired State Topics
+
+Full desired joint state:
+
+```text
+/smm_joint_controller/desired_joint_state
+```
+
+Message type:
+
+```text
+sensor_msgs/msg/JointState
+```
+---
+
+---
+
 ## Debug Topics
 
 Full error state:
@@ -153,6 +170,26 @@ The adapter is currently used by:
 
 - PDGravityController
 - InverseDynamicsJointController
+
+### `SmmDynamicsAdapter` API Summary
+
+| Function | Description |
+|---|---|
+| `initialize()` | Loads runtime YAML model and initializes the dynamics context. |
+| `dof()` | Returns the active model degrees of freedom. |
+| `computeGravity()` | Computes the joint-space gravity torque vector. |
+| `computeJointDynamics()` | Computes mass matrix, Coriolis matrix, and gravity vector. |
+| `parseRepresentation()` | Converts representation string to dynamics representation enum. |
+| `createRobotFromYaml()` | Builds the SMM robot model from runtime YAML files. |
+| `countPseudojointsFromAssembly()` | Counts valid pseudojoints from the assembly YAML file. |
+| `robot_context_ndof_` | Owns the runtime SMM robot context. |
+| `dof_` | Stores the active robot degrees of freedom. |
+| `gravity_representation_` | Stores the selected dynamics representation. |
+| `q_float_` | Float copy of joint positions for `smm_screws`. |
+| `qdot_float_` | Float copy of joint velocities for `smm_screws`. |
+| `qddot_zero_` | Zero acceleration vector for gravity/dynamics calls. |
+| `dynamics_representation_str_` | Stores the selected representation as text. |
+| `body_frame_selection_str_` | Stores the selected body-frame convention. |
 
 ## Implemented Controllers
 

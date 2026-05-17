@@ -24,12 +24,15 @@ find_package(trajectory_msgs REQUIRED)
 find_package(realtime_tools REQUIRED)
 find_package(smm_screws REQUIRED)
 
+find_package(geometry_msgs REQUIRED)
+
 # =============================================================================
 # Core controller utilities library
 # =============================================================================
 add_library(smm_controller_core SHARED
   src/core/smm_controller_utils.cpp
   src/core/smm_dynamics_adapter.cpp
+  src/core/smm_kinematics_adapter.cpp
   src/core/trajectory_operation_utils.cpp
 )
 
@@ -88,9 +91,40 @@ target_link_libraries(smm_joint_space_controllers
     ${trajectory_msgs_TARGETS}
 )
 
+# =============================================================================
+# Cartesian-space controller plugin library
+# =============================================================================
+add_library(smm_cartesian_space_controllers SHARED
+  src/cartesian_space/cartesian_pd_gravity_controller.cpp
+)
+
+target_include_directories(smm_cartesian_space_controllers PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(smm_cartesian_space_controllers
+  PUBLIC
+    smm_controller_core
+    controller_interface::controller_interface
+    hardware_interface::hardware_interface
+    pluginlib::pluginlib
+    rclcpp::rclcpp
+    rclcpp_lifecycle::rclcpp_lifecycle
+    std_msgs::std_msgs__rosidl_typesupport_cpp
+    sensor_msgs::sensor_msgs__rosidl_typesupport_cpp
+    ${geometry_msgs_TARGETS}
+    realtime_tools::realtime_tools
+)
+
 pluginlib_export_plugin_description_file(
   controller_interface
   smm_joint_space_controllers.xml
+)
+
+pluginlib_export_plugin_description_file(
+  controller_interface
+  smm_cartesian_space_controllers.xml
 )
 
 # =============================================================================
@@ -115,6 +149,7 @@ install(
   TARGETS
     smm_controller_core
     smm_joint_space_controllers
+    smm_cartesian_space_controllers
   EXPORT export_smm_controllers
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -131,7 +166,9 @@ install(
 )
 
 install(
-  FILES smm_joint_space_controllers.xml
+  FILES
+    smm_joint_space_controllers.xml
+    smm_cartesian_space_controllers.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
@@ -151,7 +188,8 @@ ament_export_dependencies(
   std_msgs
   sensor_msgs
   trajectory_msgs
-
+  geometry_msgs
+  
   realtime_tools
   smm_screws
 
