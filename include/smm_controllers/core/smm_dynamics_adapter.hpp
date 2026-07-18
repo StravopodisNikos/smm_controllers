@@ -19,7 +19,9 @@ public:
 
   bool initialize(
     const std::string & yaml_base_dir,
-    const std::string & gravity_representation);
+    const std::string & gravity_representation,
+    const std::string & operational_dynamics_method = "exact_with_damped_fallback",
+    double operational_damping = 1.0e-3);
 
   int dof() const;
 
@@ -35,6 +37,15 @@ public:
     Eigen::MatrixXd & coriolis_matrix,
     Eigen::VectorXd & gravity);  
 
+  bool computeNonredundantOperationalDynamics(
+    const Eigen::VectorXd & q,
+    const Eigen::VectorXd & qdot,
+    Eigen::MatrixXd & operational_mass_matrix,
+    Eigen::VectorXd & operational_coriolis_vector,
+    Eigen::VectorXd & operational_gravity_vector,
+    Eigen::MatrixXd & square_operational_jacobian,
+    Eigen::MatrixXd & square_operational_jacobian_dot);
+
 private:
   std::unique_ptr<RobotContextNdof> robot_context_ndof_;
 
@@ -43,6 +54,12 @@ private:
   ScrewsDynamicsNdof::DynamicsRepresentation gravity_representation_{
     ScrewsDynamicsNdof::DynamicsRepresentation::BODY
   };
+
+  ScrewsDynamicsNdof::OperationalDynamicsMethod operational_dynamics_method_{
+    ScrewsDynamicsNdof::OperationalDynamicsMethod::EXACT_WITH_DAMPED_FALLBACK
+  };
+
+  float operational_damping_{1.0e-3};
 
   std::vector<float> q_float_;
   std::vector<float> qdot_float_;
@@ -53,6 +70,10 @@ private:
 
   static ScrewsDynamicsNdof::DynamicsRepresentation parseRepresentation(
     const std::string & representation);
+
+  static ScrewsDynamicsNdof::OperationalDynamicsMethod parseOperationalDynamicsMethod(
+    const std::string & method
+  );  
 
   static std::unique_ptr<RobotAbstractBaseNdof> createRobotFromYaml(
     const std::string & yaml_base_dir);

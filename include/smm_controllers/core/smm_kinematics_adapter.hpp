@@ -29,6 +29,15 @@ public:
     Eigen::Vector3d & tcp_velocity,
     Eigen::MatrixXd & translational_jacobian);
 
+  bool computeTcpPoseKinematics(
+    const Eigen::VectorXd & q,
+    const Eigen::VectorXd & qdot,
+    Eigen::Vector3d & tcp_position,
+    Eigen::Matrix3d & tcp_orientation,
+    Eigen::Vector3d & tcp_linear_velocity,
+    Eigen::Vector3d & tcp_angular_velocity,
+    Eigen::MatrixXd & operational_jacobian);
+
 private:
   std::unique_ptr<RobotContextNdof> robot_context_ndof_;
 

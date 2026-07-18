@@ -113,3 +113,16 @@ ros2 run smm_controllers send_joint_trajectory.py \
   --trajectory-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_trajectory_6dof.yaml \
   --trajectory joint2_cubic_test \
   --publish-count 1
+  
+  
+  testing
+  
+  ros2 launch smm_gazebo_sim spawn_smm_gazebo_control_with_rviz.launch.py \
+  controller_type:=cartesian_pose_pd_gravity \
+  start_rqt_plot:=false
+  
+  ros2 topic echo /smm_cartesian_controller/current_cartesian_state -> kai dinw mikrh metabolh apo thn arxikh 8esh!
+  
+  ros2 topic pub --once /smm_cartesian_controller/desired_cartesian_state \
+  geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: 'world'}, pose: {position: {x: 0.19501, y: -1.12670, z: 0.69139}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}"

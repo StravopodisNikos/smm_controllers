@@ -96,6 +96,9 @@ target_link_libraries(smm_joint_space_controllers
 # =============================================================================
 add_library(smm_cartesian_space_controllers SHARED
   src/cartesian_space/cartesian_pd_gravity_controller.cpp
+  src/cartesian_space/cartesian_pose_pd_gravity_controller.cpp
+  src/cartesian_space/cartesian_id_controller.cpp
+  src/cartesian_space/cartesian_robust_id_controller.cpp
 )
 
 target_include_directories(smm_cartesian_space_controllers PUBLIC
@@ -189,7 +192,7 @@ ament_export_dependencies(
   sensor_msgs
   trajectory_msgs
   geometry_msgs
-  
+
   realtime_tools
   smm_screws
 

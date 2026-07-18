@@ -178,6 +178,137 @@ bool SmmKinematicsAdapter::computeTcpKinematics(
   }
 }
 
+bool SmmKinematicsAdapter::computeTcpPoseKinematics(
+  const Eigen::VectorXd & q,
+  const Eigen::VectorXd & qdot,
+  Eigen::Vector3d & tcp_position,
+  Eigen::Matrix3d & tcp_orientation,
+  Eigen::Vector3d & tcp_linear_velocity,
+  Eigen::Vector3d & tcp_angular_velocity,
+  Eigen::MatrixXd & operational_jacobian)
+{
+  if (!robot_context_ndof_) {
+    std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+              << "Adapter is not initialized.\n";
+    return false;
+  }
+
+  if (dof_ <= 0) {
+    std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+              << "Invalid DOF.\n";
+    return false;
+  }
+
+  if (q.size() != dof_ || qdot.size() != dof_) {
+    std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+              << "Size mismatch. Expected q/qdot size " << dof_
+              << ", got q=" << q.size()
+              << ", qdot=" << qdot.size() << "\n";
+    return false;
+  }
+
+  for (int i = 0; i < dof_; ++i) {
+    const auto idx = static_cast<Eigen::Index>(i);
+
+    q_float_[static_cast<size_t>(i)] =
+      static_cast<float>(q(idx));
+
+    qdot_float_[static_cast<size_t>(i)] =
+      static_cast<float>(qdot(idx));
+
+    qddot_zero_[static_cast<size_t>(i)] = 0.0f;
+  }
+
+  try {
+    auto & kin = robot_context_ndof_->get_kinematics();
+
+    // -----------------------------------------------------------------------
+    // 1) Update internal state.
+    //
+    // q, qdot, qddot are stored internally by smm_screws and are needed by
+    // the velocity/Jacobian-related computations.
+    // -----------------------------------------------------------------------
+    kin.updateJointState(
+      q_float_.data(),
+      qdot_float_.data(),
+      qddot_zero_.data());
+
+    // -----------------------------------------------------------------------
+    // 2) Forward kinematics to TCP.
+    // -----------------------------------------------------------------------
+    kin.ForwardKinematicsTCP(q_float_.data());
+
+    const Eigen::Isometry3f & g_tcp = kin.getTcpPose();
+
+    tcp_position =
+      g_tcp.translation().cast<double>();
+
+    tcp_orientation =
+      g_tcp.linear().cast<double>();
+
+    // -----------------------------------------------------------------------
+    // 3) Full operational/hybrid TCP Jacobian.
+    //
+    // Convention from smm_screws:
+    //   Jop is 6 x n
+    //   twist order is [v; w]
+    //   Jop is measured at TCP and expressed in base/inertial frame.
+    // -----------------------------------------------------------------------
+    kin.computeBodyJacobiansFrames1();
+    kin.computeHybridJacobianTCP();
+
+    if (!kin.hasOperationalJacobianTCP()) {
+      std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+                << "Operational Jacobian is not valid.\n";
+      return false;
+    }
+
+    const Eigen::Matrix<float, 6, Eigen::Dynamic> Jop =
+      kin.getOperationalJacobianTCP();
+
+    if (Jop.rows() != 6 || Jop.cols() != dof_) {
+      std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+                << "Invalid Jop dimensions: "
+                << Jop.rows() << "x" << Jop.cols()
+                << ", expected 6x" << dof_ << "\n";
+      return false;
+    }
+
+    operational_jacobian =
+      Jop.cast<double>();
+
+    // -----------------------------------------------------------------------
+    // 4) TCP hybrid twist.
+    //
+    // Since twist order is [v; w]:
+    //   first 3 elements  -> TCP linear velocity
+    //   last 3 elements   -> TCP angular velocity
+    // -----------------------------------------------------------------------
+    const Eigen::VectorXd tcp_twist =
+      operational_jacobian * qdot;
+
+    if (tcp_twist.size() != 6) {
+      std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+                << "Invalid TCP twist size: " << tcp_twist.size()
+                << ", expected 6.\n";
+      return false;
+    }
+
+    tcp_linear_velocity =
+      tcp_twist.segment<3>(0);
+
+    tcp_angular_velocity =
+      tcp_twist.segment<3>(3);
+
+    return true;
+  }
+  catch (const std::exception & e) {
+    std::cerr << "[SmmKinematicsAdapter::computeTcpPoseKinematics] "
+              << "Exception: " << e.what() << "\n";
+    return false;
+  }
+}
+
 std::unique_ptr<RobotAbstractBaseNdof>
 SmmKinematicsAdapter::createRobotFromYaml(const std::string & yaml_base_dir)
 {

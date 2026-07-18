@@ -7,4 +7,28 @@
       Cartesian position PD controller with joint-space gravity compensation for Serial Metamorphic Manipulators.
     </description>
   </class>
+  <class
+    name="smm_controllers/CartesianPosePDGravityController"
+    type="smm_controllers::CartesianPosePDGravityController"
+    base_class_type="controller_interface::ControllerInterface">
+  <description>
+    Cartesian position and orientation PD controller with joint-space gravity compensation for Serial Metamorphic Manipulators.
+  </description>
+</class>
+<class
+  name="smm_controllers/CartesianInvDynController"
+  type="smm_controllers::CartesianInvDynController"
+  base_class_type="controller_interface::ControllerInterface">
+  <description>
+    Operational-space inverse dynamics Cartesian pose controller for SMMs.
+  </description>
+</class>
+<class
+  name="smm_controllers/CartesianRobustInvDynController"
+  type="smm_controllers::CartesianRobustInvDynController"
+  base_class_type="controller_interface::ControllerInterface">
+  <description>
+    Robust operational-space inverse dynamics Cartesian pose controller for SMMs.
+  </description>
+</class>
 </library>

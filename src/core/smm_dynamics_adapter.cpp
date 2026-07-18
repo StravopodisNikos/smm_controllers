@@ -118,10 +118,18 @@ SmmDynamicsAdapter::createRobotFromYaml(const std::string & yaml_base_dir)
 
 bool SmmDynamicsAdapter::initialize(
   const std::string & yaml_base_dir,
-  const std::string & gravity_representation)
+  const std::string & gravity_representation,
+  const std::string & operational_dynamics_method,
+  const double operational_damping)
 {
   try {
     gravity_representation_ = parseRepresentation(gravity_representation);
+
+    operational_dynamics_method_ =
+      parseOperationalDynamicsMethod(operational_dynamics_method);
+
+    operational_damping_ =
+      static_cast<float>(std::max(operational_damping, 1.0e-6));
 
     auto robot = createRobotFromYaml(yaml_base_dir);
 
@@ -145,6 +153,9 @@ bool SmmDynamicsAdapter::initialize(
       std::cerr << "[SmmDynamicsAdapter] Invalid DOF = " << dof_ << "\n";
       return false;
     }
+
+    auto & dyn = robot_context_ndof_->get_dynamics();
+    dyn.initializeLinkMassMatrices();
 
     q_float_.assign(static_cast<std::size_t>(dof_), 0.0f);
     qdot_float_.assign(static_cast<std::size_t>(dof_), 0.0f);
@@ -288,6 +299,118 @@ bool SmmDynamicsAdapter::computeJointDynamics(
     coriolis_matrix.rows() == dof_ &&
     coriolis_matrix.cols() == dof_ &&
     gravity.size() == dof_);
+}
+
+bool SmmDynamicsAdapter::computeNonredundantOperationalDynamics(
+  const Eigen::VectorXd & q,
+  const Eigen::VectorXd & qdot,
+  Eigen::MatrixXd & operational_mass_matrix,
+  Eigen::VectorXd & operational_coriolis_vector,
+  Eigen::VectorXd & operational_gravity_vector,
+  Eigen::MatrixXd & square_operational_jacobian,
+  Eigen::MatrixXd & square_operational_jacobian_dot)
+{
+  if (!robot_context_ndof_) {
+    std::cerr << "[SmmDynamicsAdapter] computeNonredundantOperationalDynamics() failed: "
+              << "adapter is not initialized.\n";
+    return false;
+  }
+
+  if (q.size() != dof_ || qdot.size() != dof_) {
+    std::cerr << "[SmmDynamicsAdapter] computeNonredundantOperationalDynamics() failed: "
+              << "invalid q/qdot size.\n";
+    return false;
+  }
+
+  try {
+    auto & dyn = robot_context_ndof_->get_dynamics();
+
+    for (int i = 0; i < dof_; ++i) {
+      q_float_[static_cast<std::size_t>(i)] =
+        static_cast<float>(q(static_cast<Eigen::Index>(i)));
+
+      qdot_float_[static_cast<std::size_t>(i)] =
+        static_cast<float>(qdot(static_cast<Eigen::Index>(i)));
+
+      qddot_zero_[static_cast<std::size_t>(i)] = 0.0f;
+    }
+
+    dyn.updateJointState(
+      q_float_.data(),
+      qdot_float_.data(),
+      qddot_zero_.data());
+
+    /*
+     * The adapter chooses the Jacobian computation pipeline.
+     * Dynamics math remains inside ScrewsDynamicsNdof.
+     */
+    dyn.ForwardKinematicsTCP(q_float_.data());
+    dyn.computeBodyJacobiansFrames2();
+    dyn.computeHybridJacobianTCP();
+    dyn.computeHybridVelocityTwistTCP();
+    dyn.computeDtHybridJacobianTCP();
+
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> Mx_f;
+    Eigen::Matrix<float, Eigen::Dynamic, 1> Cx_f;
+    Eigen::Matrix<float, Eigen::Dynamic, 1> Gx_f;
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> Jx_f;
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> dJx_f;
+
+    if (!dyn.computeOperationalSpaceDynamics(
+        gravity_representation_,
+        operational_dynamics_method_,
+        operational_damping_,
+        Mx_f,
+        Cx_f,
+        Gx_f,
+        Jx_f,
+        dJx_f))
+    {
+      std::cerr << "[SmmDynamicsAdapter] computeNonredundantOperationalDynamics() failed: "
+                << "ScrewsDynamicsNdof::computeOperationalSpaceDynamics() failed.\n";
+      return false;
+    }
+
+    operational_mass_matrix = Mx_f.cast<double>();
+    operational_coriolis_vector = Cx_f.cast<double>();
+    operational_gravity_vector = Gx_f.cast<double>();
+    square_operational_jacobian = Jx_f.cast<double>();
+    square_operational_jacobian_dot = dJx_f.cast<double>();
+
+    return true;
+  } catch (const std::exception & e) {
+    std::cerr << "[SmmDynamicsAdapter] computeNonredundantOperationalDynamics() failed: "
+              << e.what() << "\n";
+    return false;
+  }
+}
+
+ScrewsDynamicsNdof::OperationalDynamicsMethod
+SmmDynamicsAdapter::parseOperationalDynamicsMethod(const std::string & method)
+{
+  std::string m = method;
+
+  std::transform(
+    m.begin(),
+    m.end(),
+    m.begin(),
+    [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  if (m == "exact") {
+    return ScrewsDynamicsNdof::OperationalDynamicsMethod::EXACT;
+  }
+
+  if (m == "damped") {
+    return ScrewsDynamicsNdof::OperationalDynamicsMethod::DAMPED;
+  }
+
+  if (m == "exact_with_damped_fallback" || m == "fallback") {
+    return ScrewsDynamicsNdof::OperationalDynamicsMethod::EXACT_WITH_DAMPED_FALLBACK;
+  }
+
+  throw std::runtime_error(
+    "[SmmDynamicsAdapter] Invalid operational_dynamics_method. "
+    "Use 'exact', 'damped', or 'exact_with_damped_fallback'.");
 }
 
 }  // namespace smm_controllers

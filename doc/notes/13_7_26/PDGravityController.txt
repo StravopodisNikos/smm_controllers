@@ -1,0 +1,80 @@
+In order to use custom dynamics we add a "dynamics adapter layer" between smm_controllers <-> smm_screws.
+
+smm_controllers
+├── smm_controller_core
+│   ├── common ROS 2 control utilities
+│   └── SmmDynamicsAdapter
+│
+├── smm_joint_space_controllers
+│   ├── JointPDEffortController
+│   └── PDGravityController
+│
+└── later:
+    smm_task_space_controllers
+    
+>> The controller should not inherit from smm_screws classes directly.
+>> Controller plugin -> SmmDynamicsAdapter -> smm_screws RobotContextNdof / Dynamics object
+
+Control law:
+
+τ_i = Kp_i(q_des − q) + Kd_i(dq_des − dq) + G
+
+Controller architecture. Now we connect with smm_screws!
+
+PDGravityController
+  └── SmmDynamicsAdapter
+        ├── reads assembly.yaml
+        ├── counts active pseudojoints
+        ├── creates correct RobotAbstractBaseNdof subclass
+        ├── creates RobotContextNdof
+        ├── initializes shared library
+        └── computes G(q)
+        
+>> Add the dynamics adapter header
+>> Add the dynamics adapter source
+
+-----------------------------------------------------------------------------------------------------------------
+HOW TO TEST:
+-----------------------------------------------------------------------------------------------------------------
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control.launch.py   controller_type:=pd_gravity   start_rqt_plot:=false
+
+ros2 run smm_controllers send_joint_goal_error_fdbk.py   --active-joint-names-yaml ~/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml/active_joint_names.yaml   --goal-yaml ~/ros2_ws/src/smm_class_pkgs/smm_control/smm_controllers/config/manual_commands/joint_goal_6dof.yaml   --goal small_joint2_test   --topic /smm_joint_controller/reference   --controller-name smm_joint_controller   --publish-rate-hz 5.0   --publish-duration-sec 5.0   --error-tolerance 0.001   --stable-time-sec 1.0   --timeout-sec 8.0
+
+
+STARTS HERE AFTER 13-7-26 RESTART:
+
+FOR CLEAN REBUILD:
+
+nikos@nikos-pc2:~/ros2_ws$ cd ~/ros2_ws
+rm -rf build/smm_controllers install/smm_controllers
+colcon build --packages-select smm_controllers --cmake-clean-cache
+source install/setup.bash
+[0.301s] WARNING:colcon.colcon_ros.prefix_path.ament:The path '/home/nikos/ros2_ws/install/smm_controllers' in the environment variable AMENT_PREFIX_PATH doesn't exist
+[0.302s] WARNING:colcon.colcon_ros.prefix_path.catkin:The path '/home/nikos/ros2_ws/install/smm_controllers' in the environment variable CMAKE_PREFIX_PATH doesn't exist
+Starting >>> smm_controllers
+[Processing: smm_controllers]                             
+Finished <<< smm_controllers [35.7s]                       
+
+Summary: 1 package finished [35.9s]
+nikos@nikos-pc2:~/ros2_ws$ pkill -f "gz sim"
+pkill -f "controller_manager"
+pkill -f "robot_state_publisher"
+pkill -f "parameter_bridge"
+pkill -f "rviz2"
+
+EXECUTE CONTROLLER:
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control_with_rviz.launch.py \
+  controller_type:=cartesian_pose_pd_gravity \
+  start_rqt_plot:=false
+  
+TEST CMD:
+point1:
+nikos@nikos-pc2:~/ros2_ws$ ros2 topic pub --once /smm_cartesian_controller/desired_cartesian_state   geometry_msgs/msg/PoseStamped   "{header: {frame_id: 'world'}, pose: {position: {x: 0.104991, y: -0.926983, z: 0.6509785}, orientation: {x: 0.500712, y: 0.500710, z: -0.499280, w: 0.499296}}}"
+publisher: beginning loop
+publishing #1: geometry_msgs.msg.PoseStamped(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=0, nanosec=0), frame_id='world'), pose=geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(x=0.104991, y=-0.926983, z=0.6509785), orientation=geometry_msgs.msg.Quaternion(x=0.500712, y=0.50071, z=-0.49928, w=0.499296)))
+point2:
+  nikos@nikos-pc2:~/ros2_ws$ ros2 topic pub --once /smm_cartesian_controller/desired_cartesian_state   geometry_msgs/msg/PoseStamped   "{header: {frame_id: 'world'}, pose: {position: {x: -0.104991, y: -0.926983, z: 0.7509785}, orientation: {x: 0.500712, y: 0.500710, z: -0.499280, w: 0.499296}}}"
+publisher: beginning loop
+publishing #1: geometry_msgs.msg.PoseStamped(header=std_msgs.msg.Header(stamp=builtin_interfaces.msg.Time(sec=0, nanosec=0), frame_id='world'), pose=geometry_msgs.msg.Pose(position=geometry_msgs.msg.Point(x=-0.104991, y=-0.926983, z=0.7509785), orientation=geometry_msgs.msg.Quaternion(x=0.500712, y=0.50071, z=-0.49928, w=0.499296)))
+
