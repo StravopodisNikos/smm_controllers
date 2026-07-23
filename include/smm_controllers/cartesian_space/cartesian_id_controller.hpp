@@ -70,6 +70,20 @@ private:
   double operational_damping_{1.0e-3};
 
   // ---------------------------------------------------------------------------
+  // Effort & Velocity Limits
+  // ---------------------------------------------------------------------------
+  double effort_limit_{80.0};
+  Eigen::VectorXd joint_effort_limits_;
+  bool enforce_velocity_limits_{true};
+  double default_velocity_limit_{4.0841}; // same as xacro
+  double velocity_soft_margin_{0.25};
+  double velocity_brake_gain_{15.0};
+
+  Eigen::VectorXd joint_velocity_limits_;
+
+  void applyVelocityLimitTorqueFilter( const Eigen::VectorXd & qdot, Eigen::VectorXd & tau);
+
+  // ---------------------------------------------------------------------------
   // ROS interfaces
   // ---------------------------------------------------------------------------
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr desired_cartesian_sub_;
@@ -156,7 +170,8 @@ private:
 
   Eigen::Vector3d force_cmd_;
   Eigen::Vector3d moment_cmd_;
-  Eigen::Matrix<double, 6, 1> wrench_cmd_;
+  //Eigen::Matrix<double, 6, 1> wrench_cmd_;
+  Eigen::VectorXd wrench_cmd_;
 
   Eigen::MatrixXd Jop_;
 
@@ -182,7 +197,7 @@ private:
   double condition_soft_limit_{500.0};
   double condition_hard_limit_{2000.0};
   bool orientation_condition_scaling_{true};
-
+  
   // ---------------------------------------------------------------------------
   // Reference handling
   // ---------------------------------------------------------------------------

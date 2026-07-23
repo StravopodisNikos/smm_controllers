@@ -68,6 +68,20 @@ class CartesianRobustInvDynController : public controller_interface::ControllerI
 
         std::string operational_dynamics_method_{"exact_with_damped_fallback"};
         double operational_damping_{1.0e-3};
+        
+        // ---------------------------------------------------------------------------
+        // Effort & Velocity Limits
+        // ---------------------------------------------------------------------------
+        double effort_limit_{80.0};
+        Eigen::VectorXd joint_effort_limits_;
+        bool enforce_velocity_limits_{true};
+        double default_velocity_limit_{4.0841}; // same as xacro
+        double velocity_soft_margin_{0.25};
+        double velocity_brake_gain_{15.0};
+
+        Eigen::VectorXd joint_velocity_limits_;
+
+        void applyVelocityLimitTorqueFilter( const Eigen::VectorXd & qdot, Eigen::VectorXd & tau);
 
         // ---------------------------------------------------------------------------
         // ROS interfaces
@@ -156,7 +170,8 @@ class CartesianRobustInvDynController : public controller_interface::ControllerI
 
         Eigen::Vector3d force_cmd_;
         Eigen::Vector3d moment_cmd_;
-        Eigen::Matrix<double, 6, 1> wrench_cmd_;
+        //Eigen::Matrix<double, 6, 1> wrench_cmd_;
+        Eigen::VectorXd wrench_cmd_;
 
         Eigen::MatrixXd Jop_;
 
@@ -191,7 +206,6 @@ class CartesianRobustInvDynController : public controller_interface::ControllerI
         Eigen::VectorXd robust_wrench_;
 
         double tanh_kappa_{5.0};
-        double effort_limit_{80.0};
 
         // ---------------------------------------------------------------------------
         // Reference handling

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
@@ -36,6 +37,15 @@ controller_interface::CallbackReturn CartesianInvDynController::on_init()
     auto_declare<bool>("publish_desired_state", true);
     auto_declare<bool>("publish_current_state", true);
     auto_declare<bool>("publish_full_debug_state", true);
+
+    // Velocity & Torque limits
+    auto_declare<double>("effort_limit", 80.0); // this is a compromise between stepper and dxl max torques
+    auto_declare<bool>("enforce_velocity_limits", true);
+    auto_declare<double>("default_velocity_limit", 4.0841); // same as xacro
+    auto_declare<double>("velocity_soft_margin", 0.25);
+    auto_declare<double>("velocity_brake_gain", 15.0);
+    auto_declare<std::vector<double>>("joint_velocity_limits", std::vector<double>{});
+    auto_declare<std::vector<double>>("joint_effort_limits", std::vector<double>{});
 
     auto_declare<std::string>(
       "kinematics_data_dir",
@@ -154,6 +164,9 @@ controller_interface::CallbackReturn CartesianInvDynController::on_configure(
     operational_damping_ =
         get_node()->get_parameter("operational_damping").as_double();
 
+    effort_limit_ =
+        get_node()->get_parameter("effort_limit").as_double();
+
     const auto n = joint_names_.size();
 
     if (n == 0) {
@@ -193,6 +206,121 @@ controller_interface::CallbackReturn CartesianInvDynController::on_configure(
         orientation_des_.size());
         return controller_interface::CallbackReturn::ERROR;
     }
+
+    if (effort_limit_ <= 0.0) {
+        RCLCPP_WARN(
+            get_node()->get_logger(),
+            "effort_limit must be positive. Resetting to 80.0.");
+        effort_limit_ = 80.0;
+    }
+
+    // Effort limits
+    const auto joint_effort_limits_param =
+      get_node()->get_parameter("joint_effort_limits").as_double_array();
+
+    joint_effort_limits_.resize(n);
+
+    if (joint_effort_limits_param.empty()) {
+      joint_effort_limits_.setConstant(effort_limit_);
+    } else if (joint_effort_limits_param.size() == n) {
+      for (std::size_t i = 0; i < n; ++i) {
+        joint_effort_limits_(i) = joint_effort_limits_param[i];
+      }
+    } else {
+      throw std::runtime_error(
+        "joint_effort_limits must be empty or have size equal to number of active joints.");
+    }
+
+    for (Eigen::Index i = 0; i < joint_effort_limits_.size(); ++i) {
+      if (joint_effort_limits_(i) <= 0.0) {
+        throw std::runtime_error("All joint_effort_limits values must be positive.");
+      }
+    }
+
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Joint effort limits loaded. First joint limit=%.3f Nm, scalar fallback=%.3f Nm",
+      joint_effort_limits_(0),
+      effort_limit_);
+
+    std::ostringstream oss;
+    oss << "Joint effort limits: ";
+    for (Eigen::Index i = 0; i < joint_effort_limits_.size(); ++i) {
+      oss << joint_names_[static_cast<std::size_t>(i)]
+          << "=" << joint_effort_limits_(i) << " ";
+    }
+
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "%s",
+      oss.str().c_str());
+
+    // Velocity limits    
+    enforce_velocity_limits_ =
+      get_node()->get_parameter("enforce_velocity_limits").as_bool();
+
+    default_velocity_limit_ =
+      get_node()->get_parameter("default_velocity_limit").as_double();
+
+    velocity_soft_margin_ =
+      get_node()->get_parameter("velocity_soft_margin").as_double();
+
+    velocity_brake_gain_ =
+      get_node()->get_parameter("velocity_brake_gain").as_double();
+
+    const auto joint_velocity_limits_param =
+      get_node()->get_parameter("joint_velocity_limits").as_double_array();
+
+    if (default_velocity_limit_ <= 0.0) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "default_velocity_limit must be positive. Resetting to 4.0841 rad/s.");
+      default_velocity_limit_ = 4.0841;
+    }
+
+    if (velocity_soft_margin_ <= 0.0) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "velocity_soft_margin must be positive. Resetting to 0.25 rad/s.");
+      velocity_soft_margin_ = 0.25;
+    }
+
+    if (velocity_brake_gain_ < 0.0) {
+      RCLCPP_WARN(
+        get_node()->get_logger(),
+        "velocity_brake_gain must be non-negative. Resetting to 15.0.");
+      velocity_brake_gain_ = 15.0;
+    }
+
+    joint_velocity_limits_.resize(n);
+
+    if (joint_velocity_limits_param.empty()) {
+      joint_velocity_limits_.setConstant(default_velocity_limit_);
+    } else if (joint_velocity_limits_param.size() == 1) {
+      joint_velocity_limits_.setConstant(joint_velocity_limits_param[0]);
+    } else if (joint_velocity_limits_param.size() == n) {
+      for (std::size_t i = 0; i < n; ++i) {
+        joint_velocity_limits_(i) = joint_velocity_limits_param[i];
+      }
+    } else {
+      throw std::runtime_error(
+        "joint_velocity_limits must be empty, size 1, or equal to number of active joints.");
+    }
+
+    for (Eigen::Index i = 0; i < joint_velocity_limits_.size(); ++i) {
+      if (joint_velocity_limits_(i) <= 0.0) {
+        throw std::runtime_error("All joint_velocity_limits values must be positive.");
+      }
+    }
+
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "Velocity-limit torque filter: enabled=%s, default_velocity_limit=%.4f rad/s, "
+      "soft_margin=%.4f rad/s, brake_gain=%.4f",
+      enforce_velocity_limits_ ? "true" : "false",
+      default_velocity_limit_,
+      velocity_soft_margin_,
+      velocity_brake_gain_);
 
     if (!expandVector3(x_des_, x_des_eig_, "x_des")) {
         return controller_interface::CallbackReturn::ERROR;
@@ -456,6 +584,21 @@ controller_interface::CallbackReturn CartesianInvDynController::on_activate(
     return controller_interface::CallbackReturn::ERROR;
   }
 
+  RCLCPP_INFO(
+    get_node()->get_logger(),
+    "Command interface order:");
+
+  for (std::size_t i = 0; i < command_interfaces_.size(); ++i) {
+    RCLCPP_INFO(
+      get_node()->get_logger(),
+      "  command_interfaces_[%zu] = %s/%s ; expected joint_names_[%zu] = %s",
+      i,
+      command_interfaces_[i].get_prefix_name().c_str(),
+      command_interfaces_[i].get_interface_name().c_str(),
+      i,
+      joint_names_[i].c_str());
+  }
+    
   if (!readStateInterfaces()) {
     return controller_interface::CallbackReturn::ERROR;
   }
@@ -804,6 +947,26 @@ bool CartesianInvDynController::computeCartesianInvDynCommand()
     Gx_;
 
   tau_ = Jx_.transpose() * operational_wrench_;
+
+  // Velocity limiter
+  applyVelocityLimitTorqueFilter(qdot_, tau_);
+
+    // Effort clamp
+  for (Eigen::Index i = 0; i < tau_.size(); ++i) {
+    if (!std::isfinite(tau_(i))) {
+        tau_(i) = 0.0;
+    }
+
+  const double limit_i =
+    joint_effort_limits_.size() == tau_.size()
+      ? joint_effort_limits_(i)
+      : effort_limit_;
+
+  tau_(i) = std::clamp(
+    tau_(i),
+    -limit_i,
+    limit_i);
+  }
 
   tau_task_ = tau_;
 
@@ -1202,6 +1365,59 @@ void CartesianInvDynController::fillPoseStamped(
   msg.pose.orientation.y = q.y();
   msg.pose.orientation.z = q.z();
   msg.pose.orientation.w = q.w();
+}
+
+void CartesianInvDynController::applyVelocityLimitTorqueFilter(
+  const Eigen::VectorXd & qdot,
+  Eigen::VectorXd & tau)
+{
+  if (!enforce_velocity_limits_) {
+    return;
+  }
+
+  if (qdot.size() != tau.size() ||
+      joint_velocity_limits_.size() != tau.size())
+  {
+    RCLCPP_WARN_THROTTLE(
+      get_node()->get_logger(),
+      *get_node()->get_clock(),
+      1000,
+      "Velocity-limit filter skipped because vector sizes are inconsistent.");
+    return;
+  }
+
+  for (Eigen::Index i = 0; i < tau.size(); ++i) {
+    const double v_limit = joint_velocity_limits_(i);
+
+    if (v_limit <= 0.0) {
+      continue;
+    }
+
+    const double margin =
+      std::min(velocity_soft_margin_, 0.5 * v_limit);
+
+    const double v_soft = v_limit - margin;
+    const double v = qdot(i);
+    const double abs_v = std::abs(v);
+
+    if (abs_v <= v_soft) {
+      continue;
+    }
+
+    const double direction = (v >= 0.0) ? 1.0 : -1.0;
+
+    const double ratio =
+      std::clamp((v_limit - abs_v) / margin, 0.0, 1.0);
+
+    // If torque pushes further into the velocity limit, smoothly reduce it.
+    if (tau(i) * direction > 0.0) {
+      tau(i) *= ratio;
+    }
+
+    // Add braking torque once inside the soft-limit region.
+    const double overspeed_soft = abs_v - v_soft;
+    tau(i) -= velocity_brake_gain_ * overspeed_soft * direction;
+  }
 }
 
 }  // namespace smm_controllers
