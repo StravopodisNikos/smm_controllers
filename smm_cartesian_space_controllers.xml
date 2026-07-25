@@ -31,4 +31,12 @@
     Robust operational-space inverse dynamics Cartesian pose controller for SMMs.
   </description>
 </class>
+<class
+  name="smm_controllers/CartesianRobustAdaptiveInvDynController"
+  type="smm_controllers::CartesianRobustAdaptiveInvDynController"
+  base_class_type="controller_interface::ControllerInterface">
+  <description>
+    Robust adaptive operational-space inverse dynamics Cartesian pose controller for SMMs.
+  </description>
+</class>
 </library>

@@ -1,0 +1,11 @@
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control_with_rviz.launch.py   controller_type:=cartesian_robust_inv_dyn   run_synthesis:=true   data_dir:=/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml   xacro_path:=urdf/3dof/smm_structure_anatomy_assembly_3dof.xacro   start_ellipsoid_viz:=true   show_kinematic_trans_ellipsoid:=true   show_kinematic_rot_ellipsoid:=false   start_rqt_plot:=false
+
+ros2 bag record -s mcap   /smm_cartesian_controller/current_cartesian_state   /smm_cartesian_controller/desired_cartesian_state   /smm_cartesian_controller/cartesian_error_state   /smm_cartesian_controller/task_force   /smm_cartesian_controller/task_torque   /smm_cartesian_controller/commanded_torque   /smm_cartesian_controller/jacobian_condition   /smm_cartesian_controller/jacobian_singular_values   /joint_states   -o /home/nikos/ros2_ws/controller_rosbags/23_7_26/TASK4/anatomy_4_IDOSC_TASK_4
+
+ros2 topic pub --once /smm_cartesian_controller/desired_cartesian_state   geometry_msgs/msg/PoseStamped   "{header: {frame_id: 'world'}, pose: {position: {x: -0.254004991, y: -0.35505076983, z: 0.48900599785}, orientation: {x: 0.500712, y: 0.4500710, z: -0.499280, w: 0.499296}}}"
+
+rostopic echo /smm_cartesian_controller/current_cartesian_state --once
+
+python3 ~/ros2_ws/controller_rosbags/compare_controller_bags.py   --inv-bag /home/nikos/ros2_ws/controller_rosbags/23_7_26/TASK4/anatomy_4_IDOSC_TASK_4   --robust-bag /home/nikos/ros2_ws/controller_rosbags/23_7_26/TASK4/anatomy_4_RIDOSC_TASK_4   --outdir /home/nikos/ros2_ws/controller_rosbags/23_7_26/TASK4/plots_TASK4
+
+

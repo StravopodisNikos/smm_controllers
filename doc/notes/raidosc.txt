@@ -1,0 +1,14 @@
+Parameter meaning
+
+The controller parameters are:
+
+Lambda_e : Sliding/filter gain. Higher values make the controller react more strongly to position error inside s.
+Kappa_s  : Linear robust stabilizing gain on s. This is the main damping/stabilization term.
+Kappa_r  : Fixed robust switching/saturation gain. Compensates bounded uncertainty.
+kappa    : Smoothness of the tanh approximation. Large κ approaches sign control.
+Gamma - gamma_i : Adaptation speed. Larger values make the adaptive term grow faster.
+sigma_i  : Leakage / forgetting. Prevents unbounded parameter drift.
+epsilon  : Dead zone. Prevents adaptation from reacting to tiny numerical errors.
+ro_max_i : Maximum allowed adaptive robust compensation per task component.
+
+Regressor Y is the matrix that collects all known dynamic functions multiplying unknown physical parameters.
