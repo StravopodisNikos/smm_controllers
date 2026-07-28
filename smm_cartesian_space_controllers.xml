@@ -39,4 +39,12 @@
     Robust adaptive operational-space inverse dynamics Cartesian pose controller for SMMs.
   </description>
 </class>
+<class
+  name="smm_controllers/CartesianRobustImpedanceController"
+  type="smm_controllers::CartesianRobustImpedanceController"
+  base_class_type="controller_interface::ControllerInterface">
+  <description>
+    Robust Cartesian impedance controller for SMMs.
+  </description>
+</class>
 </library>

@@ -99,6 +99,8 @@ add_library(smm_cartesian_space_controllers SHARED
   src/cartesian_space/cartesian_pose_pd_gravity_controller.cpp
   src/cartesian_space/cartesian_id_controller.cpp
   src/cartesian_space/cartesian_robust_id_controller.cpp
+  src/cartesian_space/cartesian_robust_adaptive_id_controller.cpp
+  src/cartesian_space/cartesian_robust_impedance_controller.cpp
 )
 
 target_include_directories(smm_cartesian_space_controllers PUBLIC

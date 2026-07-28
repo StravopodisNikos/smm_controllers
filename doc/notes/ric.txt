@@ -1,0 +1,31 @@
+>>> HOW TO TEST APPLY WRENCH CASE ONLY!
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control_with_rviz.launch.py \
+  controller_type:=cartesian_robust_impedance \
+  run_synthesis:=true \
+  data_dir:=/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml \
+  xacro_path:=urdf/3dof/smm_structure_anatomy_assembly_3dof.xacro \
+  world:=smm_interaction_massage_test.sdf \
+  start_ellipsoid_viz:=true \
+  show_kinematic_trans_ellipsoid:=true \
+  start_rqt_plot:=false
+  
+  ros2 launch smm_gazebo_sim test_interaction_1.launch.py \
+  world:=smm_world \
+  model:=smm \
+  link:=active_module_b_2 \
+  fixed_frame:=world \
+  force_x:=0.0 \
+  force_y:=0.0 \
+  force_z:=-10.0 \
+  torque_x:=0.0 \
+  torque_y:=0.0 \
+  torque_z:=0.0
+  
+  ros2 topic echo /smm_cartesian_controller/current_cartesian_state
+  ros2 topic echo /smm_cartesian_controller/cartesian_error_state
+  ros2 topic echo /smm_cartesian_controller/commanded_torque
+  ros2 topic echo /smm_cartesian_controller/task_force
+  
+  
+  

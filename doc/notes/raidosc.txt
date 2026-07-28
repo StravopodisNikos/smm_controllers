@@ -12,3 +12,53 @@ epsilon  : Dead zone. Prevents adaptation from reacting to tiny numerical errors
 ro_max_i : Maximum allowed adaptive robust compensation per task component.
 
 Regressor Y is the matrix that collects all known dynamic functions multiplying unknown physical parameters.
+
+ros2 launch smm_gazebo_sim spawn_smm_gazebo_control_with_rviz.launch.py \
+  controller_type:=cartesian_robust_adaptive_inv_dyn \
+  run_synthesis:=true \
+  data_dir:=/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml \
+  xacro_path:=urdf/3dof/smm_structure_anatomy_assembly_3dof.xacro \
+  start_ellipsoid_viz:=true \
+  show_kinematic_trans_ellipsoid:=true \
+  start_rqt_plot:=false
+  
+============================================================================
+F_ad = rho_hat * tanh(kappa * s)
+F_ad ^ when:
+increasing:
+rho_hat growth speed  -> adaptive_gain_position
+rho_hat maximum       -> adaptive_rho_max_position
+rho_hat initial value -> adaptive_rho_initial_position
+reducing:
+leakage               -> adaptive_leakage_position
+deadzone              -> adaptive_deadzone
+============================================================================
+SETS FOR WEAK-ADAPTATION
+adaptive_enabled: true
+
+adaptive_gain_position: [10.0, 10.0, 10.0]
+adaptive_gain_orientation: [0.0, 0.0, 0.0]
+
+adaptive_leakage_position: [1.0, 1.0, 1.0]
+adaptive_leakage_orientation: [0.0, 0.0, 0.0]
+
+adaptive_rho_initial_position: [0.0, 0.0, 0.0]
+adaptive_rho_initial_orientation: [0.0, 0.0, 0.0]
+
+adaptive_rho_min_position: [0.0, 0.0, 0.0]
+adaptive_rho_min_orientation: [0.0, 0.0, 0.0]
+
+adaptive_rho_max_position: [10.0, 10.0, 10.0]
+adaptive_rho_max_orientation: [0.0, 0.0, 0.0]
+
+adaptive_deadzone: 0.002
+
+TIP:
+During large error:
+  rho_hat grows slowly.
+
+Near the goal:
+  adaptive_wrench becomes small.
+
+After settling:
+  rho_hat decays gradually.

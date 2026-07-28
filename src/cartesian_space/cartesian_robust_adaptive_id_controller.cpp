@@ -1,4 +1,4 @@
-#include "smm_controllers/cartesian_robust_adaptive_id_controller.hpp"
+#include "smm_controllers/cartesian_space/cartesian_robust_adaptive_id_controller.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -828,7 +828,12 @@ CartesianRobustAdaptiveInvDynController::on_activate(
   gravity_.setZero();
 
   for (std::size_t i = 0; i < command_interfaces_.size(); ++i) {
-    command_interfaces_[i].set_value(0.0);
+    if (!command_interfaces_[i].set_value(0.0)) {
+        RCLCPP_WARN(
+            get_node()->get_logger(),
+            "Failed to initialize command interface '%s' to zero.",
+            command_interfaces_[i].get_name().c_str());
+    }
   }
 
   for (std::size_t i = 0; i < command_interfaces_.size(); ++i) {
@@ -965,11 +970,27 @@ bool CartesianRobustAdaptiveInvDynController::readStateInterfaces()
   }
 
   for (std::size_t i = 0; i < joint_names_.size(); ++i) {
-    q_(static_cast<Eigen::Index>(i)) =
-      state_interfaces_[2 * i].get_value();
+    // ROS 2 Kilted deprecates get_value().
+    // get_optional() safely returns std::optional<double>, allowing us to detect
+    // invalid or unavailable state-interface values without using deprecated API.
+    const auto q_value =
+      state_interfaces_[2 * i].get_optional();
 
-    qdot_(static_cast<Eigen::Index>(i)) =
-      state_interfaces_[2 * i + 1].get_value();
+    const auto qdot_value =
+      state_interfaces_[2 * i + 1].get_optional();
+
+    if (!q_value.has_value() || !qdot_value.has_value()) {
+      RCLCPP_ERROR_THROTTLE(
+        get_node()->get_logger(),
+        *get_node()->get_clock(),
+        1000,
+        "Failed to read state interfaces for joint '%s'.",
+        joint_names_[i].c_str());
+      return false;
+    }
+
+    q_(static_cast<Eigen::Index>(i)) = q_value.value();
+    qdot_(static_cast<Eigen::Index>(i)) = qdot_value.value();
   }
 
   if (!q_.allFinite() || !qdot_.allFinite()) {
@@ -989,10 +1010,10 @@ bool CartesianRobustAdaptiveInvDynController::computeCartesianPoseKinematics()
   if (!kinematics_adapter_.computeTcpPoseKinematics(
       q_,
       qdot_,
-      x_,
-      xdot_,
-      R_,
-      omega_,
+      x_,      // TCP position
+      R_,      // TCP orientation
+      xdot_,   // TCP linear velocity
+      omega_,  // TCP angular velocity
       Jop_))
   {
     RCLCPP_ERROR_THROTTLE(
@@ -1003,10 +1024,16 @@ bool CartesianRobustAdaptiveInvDynController::computeCartesianPoseKinematics()
     return false;
   }
 
+  // Cartesian tracking errors using the controller convention:
+  // e = desired - current.
   x_error_ = x_des_eig_ - x_;
   xdot_error_ = xdot_des_eig_ - xdot_;
 
+  // Orientation error:
+  // e_R = vee(0.5 * (R_des*R^T - R*R_des^T)).
   orientation_error_ = computeOrientationError(R_des_, R_);
+
+  // Angular velocity tracking error.
   omega_error_ = omega_des_ - omega_;
 
   computeJacobianColumnNorms();
@@ -1405,7 +1432,15 @@ bool CartesianRobustAdaptiveInvDynController::writeCommandInterfaces()
   }
 
   for (std::size_t i = 0; i < command_interfaces_.size(); ++i) {
-    command_interfaces_[i].set_value(tau_(static_cast<Eigen::Index>(i)));
+    if (!command_interfaces_[i].set_value(tau_(static_cast<Eigen::Index>(i)))) {
+        RCLCPP_ERROR_THROTTLE(
+            get_node()->get_logger(),
+            *get_node()->get_clock(),
+            1000,
+            "Failed to write effort command for joint '%s'.",
+            joint_names_[i].c_str());
+        return false;
+    }
   }
 
   return true;

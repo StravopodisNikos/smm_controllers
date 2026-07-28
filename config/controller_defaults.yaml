@@ -136,198 +136,316 @@ controllers:
     velocity_soft_margin: 0.25
     velocity_brake_gain: 15.0
     joint_velocity_limits: [4.0841]
-cartesian_robust_adaptive_inv_dyn:
-  # ---------------------------------------------------------------------------
-  # Operational acceleration reference:
-  #
-  #   a_ref = task_acceleration_scale * (Kp * e + Kd * e_dot)
-  #
-  # where:
-  #   e     = x_des - x
-  #   e_dot = xdot_des - xdot
-  #
-  # These gains generate the nominal reference acceleration used by the
-  # operational-space inverse dynamics term.
-  # ---------------------------------------------------------------------------
-  kp_position: [200.0, 200.0, 200.0]
-  kd_position: [20.0, 20.0, 20.0]
+  cartesian_robust_adaptive_inv_dyn:
+    # ---------------------------------------------------------------------------
+    # Operational acceleration reference:
+    #
+    #   a_ref = task_acceleration_scale * (Kp * e + Kd * e_dot)
+    #
+    # where:
+    #   e     = x_des - x
+    #   e_dot = xdot_des - xdot
+    #
+    # These gains generate the nominal reference acceleration used by the
+    # operational-space inverse dynamics term.
+    # ---------------------------------------------------------------------------
+    kp_position: [200.0, 200.0, 200.0]
+    kd_position: [30.0, 30.0, 30.0]
 
-  # Orientation disabled at first, even for 6-DoF tests.
-  # This lets us validate translational tracking before adding rotational action.
-  kp_orientation: [0.0, 0.0, 0.0]
-  kd_orientation: [0.0, 0.0, 0.0]
+    # Orientation disabled at first, even for 6-DoF tests.
+    # This lets us validate translational tracking before adding rotational action.
+    kp_orientation: [0.0, 0.0, 0.0]
+    kd_orientation: [0.0, 0.0, 0.0]
 
-  # ---------------------------------------------------------------------------
-  # Sliding variable:
-  #
-  #   s = e_dot + Lambda * e
-  #
-  # The sliding variable is the filtered tracking error used by the robust and
-  # adaptive parts of the controller.
-  # ---------------------------------------------------------------------------
-  lambda_position: [8.0, 8.0, 8.0]
-  lambda_orientation: [0.0, 0.0, 0.0]
+    # ---------------------------------------------------------------------------
+    # Sliding variable:
+    #
+    #   s = e_dot + Lambda * e
+    #
+    # The sliding variable is the filtered tracking error used by the robust and
+    # adaptive parts of the controller.
+    # ---------------------------------------------------------------------------
+    lambda_position: [15.0, 15.0, 15.0]
+    lambda_orientation: [0.0, 0.0, 0.0]
 
-  # ---------------------------------------------------------------------------
-  # Fixed robust RIDOSC term:
-  #
-  #   F_rob = K1 * s + K2 * tanh(kappa * s)
-  #
-  # K1 gives linear damping/stabilization on the sliding variable.
-  # K2 gives bounded robust compensation using tanh as a smooth sign function.
-  # ---------------------------------------------------------------------------
-  k1_position: [50.0, 50.0, 50.0]
-  k1_orientation: [0.0, 0.0, 0.0]
+    # ---------------------------------------------------------------------------
+    # Fixed robust RIDOSC term:
+    #
+    #   F_rob = K1 * s + K2 * tanh(kappa * s)
+    #
+    # K1 gives linear damping/stabilization on the sliding variable.
+    # K2 gives bounded robust compensation using tanh as a smooth sign function.
+    # ---------------------------------------------------------------------------
+    k1_position: [50.0, 50.0, 50.0]
+    k1_orientation: [0.0, 0.0, 0.0]
 
-  k2_position: [25.0, 25.0, 25.0]
-  k2_orientation: [0.0, 0.0, 0.0]
+    k2_position: [50.0, 50.0, 50.0]
+    k2_orientation: [0.0, 0.0, 0.0]
 
-  # Smoothness of tanh(kappa*s).
-  # Higher values approach sign(s), but may become more aggressive.
-  tanh_kappa: 5.0
+    # Smoothness of tanh(kappa*s).
+    # Higher values approach sign(s), but may become more aggressive.
+    tanh_kappa: 25.0
 
-  # ---------------------------------------------------------------------------
-  # Adaptive robust uncertainty-bound term:
-  #
-  #   rho_hat_dot = gamma * max(|s| - deadzone, 0) - leakage * rho_hat
-  #   F_ad        = rho_hat * tanh(kappa * s)
-  #
-  # rho_hat estimates the unknown residual operational disturbance bound in each
-  # task direction. It is not a position or velocity estimate.
-  #
-  # For the first validation run, keep adaptive_enabled=false.
-  # The controller should then behave like the existing robust inverse dynamics
-  # controller. After that, set adaptive_enabled=true.
-  # ---------------------------------------------------------------------------
-  adaptive_enabled: false
+    # ---------------------------------------------------------------------------
+    # Adaptive robust uncertainty-bound term:
+    #
+    #   rho_hat_dot = gamma * max(|s| - deadzone, 0) - leakage * rho_hat
+    #   F_ad        = rho_hat * tanh(kappa * s)
+    #
+    # rho_hat estimates the unknown residual operational disturbance bound in each
+    # task direction. It is not a position or velocity estimate.
+    #
+    # For the first validation run, keep adaptive_enabled=false.
+    # The controller should then behave like the existing robust inverse dynamics
+    # controller. After that, set adaptive_enabled=true.
+    # ---------------------------------------------------------------------------
+    adaptive_enabled: true
 
-  # gamma: adaptation speed.
-  # Larger values make rho_hat grow faster when sliding error persists.
-  adaptive_gain_position: [150.0, 150.0, 150.0]
-  adaptive_gain_orientation: [0.0, 0.0, 0.0]
+    # gamma: adaptation speed.
+    # Larger values make rho_hat grow faster when sliding error persists.
+    # Moderate adaptation speed 20-50.
+    # Enough to add residual compensation, not enough to explode through the goal.
+    adaptive_gain_position: [50.0, 50.0, 80.0]
+    adaptive_gain_orientation: [0.0, 0.0, 0.0]
 
-  # leakage: controlled forgetting.
-  # Prevents parameter drift and slowly removes unnecessary compensation.
-  adaptive_leakage_position: [0.5, 0.5, 0.5]
-  adaptive_leakage_orientation: [0.0, 0.0, 0.0]
+    # leakage: controlled forgetting.
+    # Prevents parameter drift and slowly removes unnecessary compensation.
+    # Higher leakage > 0.5.
+    # This prevents rho_hat from staying too large after the target is reached.    
+    adaptive_leakage_position: [1.5, 1.5, 1.5]
+    adaptive_leakage_orientation: [1.5, 1.5, 1.5]
 
-  # Initial adaptive uncertainty-bound estimate.
-  adaptive_rho_initial_position: [0.0, 0.0, 0.0]
-  adaptive_rho_initial_orientation: [0.0, 0.0, 0.0]
+    # >> gamma / leakage : must not be extremely high
 
-  # Lower projection bound for rho_hat.
-  adaptive_rho_min_position: [0.0, 0.0, 0.0]
-  adaptive_rho_min_orientation: [0.0, 0.0, 0.0]
+    # Initial adaptive uncertainty-bound estimate.
+    # Start from zero. Do not inject force before the controller sees persistent error.
+    adaptive_rho_initial_position: [0.0, 0.0, 0.0]
+    adaptive_rho_initial_orientation: [0.0, 0.0, 0.0]
 
-  # Upper projection bound for rho_hat.
-  # These are operational-space residual force/moment bounds.
-  # For translational-only testing, only the first three are active.
-  adaptive_rho_max_position: [100.0, 100.0, 100.0]
-  adaptive_rho_max_orientation: [0.0, 0.0, 0.0]
+    # Lower projection bound for rho_hat.
+    adaptive_rho_min_position: [0.0, 0.0, 0.0]
+    adaptive_rho_min_orientation: [0.0, 0.0, 0.0]
 
-  # Deadzone on |s|.
-  # Prevents adaptation due to numerical noise or tiny steady-state errors.
-  adaptive_deadzone: 0.001
+    # Upper projection bound for rho_hat.
+    # These are operational-space residual force/moment bounds.
+    # For translational-only testing, only the first three are active.
+    # Stronger in Z, but still bounded.
+    # This gives more holding authority without making X/Y overshoot aggressively.    
+    adaptive_rho_max_position: [50.0, 50.0, 50.0]
+    adaptive_rho_max_orientation: [0.0, 0.0, 0.0]
 
-  # ---------------------------------------------------------------------------
-  # Desired task reference.
-  #
-  # Empty x_des means the controller can hold the initial TCP position when
-  # hold_initial_position=true.
-  #
-  # IMPORTANT:
-  # The generator must not emit these as YAML null values. Empty lists are fine
-  # in this defaults file only if the generator omits them or writes valid [].
-  # ---------------------------------------------------------------------------
-  hold_initial_position: true
-  x_des: []
-  xdot_des: []
-  orientation_des: []
+    # Deadzone on |s|.
+    # Prevents adaptation due to numerical noise or tiny steady-state errors.
+    adaptive_deadzone: 0.0015
 
-  # ---------------------------------------------------------------------------
-  # Model data directories.
-  #
-  # These point to the live generated SMM synthesis YAML folder used by the
-  # kinematics and dynamics adapters.
-  # ---------------------------------------------------------------------------
-  kinematics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
-  dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    # ---------------------------------------------------------------------------
+    # Desired task reference.
+    #
+    # Empty x_des means the controller can hold the initial TCP position when
+    # hold_initial_position=true.
+    #
+    # IMPORTANT:
+    # The generator must not emit these as YAML null values. Empty lists are fine
+    # in this defaults file only if the generator omits them or writes valid [].
+    # ---------------------------------------------------------------------------
+    hold_initial_position: true
+    x_des: []
+    xdot_des: []
+    orientation_des: []
 
-  # Dynamics representation used by the dynamics adapter.
-  gravity_representation: "body"
+    # ---------------------------------------------------------------------------
+    # Model data directories.
+    #
+    # These point to the live generated SMM synthesis YAML folder used by the
+    # kinematics and dynamics adapters.
+    # ---------------------------------------------------------------------------
+    kinematics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
 
-  # Frame used by Cartesian debug messages.
-  fixed_frame: "world"
+    # Dynamics representation used by the dynamics adapter.
+    gravity_representation: "body"
 
-  # ---------------------------------------------------------------------------
-  # Operational-space dynamics method.
-  #
-  # exact_with_damped_fallback:
-  #   tries exact operational dynamics first;
-  #   if the square task Jacobian is singular, falls back to damped dynamics.
-  # ---------------------------------------------------------------------------
-  operational_dynamics_method: "exact_with_damped_fallback"
-  operational_damping: 0.05
+    # Frame used by Cartesian debug messages.
+    fixed_frame: "world"
 
-  # Global multiplier on the operational acceleration reference.
-  task_acceleration_scale: 1.0
+    # ---------------------------------------------------------------------------
+    # Operational-space dynamics method.
+    #
+    # exact_with_damped_fallback:
+    #   tries exact operational dynamics first;
+    #   if the square task Jacobian is singular, falls back to damped dynamics.
+    # ---------------------------------------------------------------------------
+    operational_dynamics_method: "exact_with_damped_fallback"
+    operational_damping: 0.05
 
-  # ---------------------------------------------------------------------------
-  # Jacobian conditioning safety.
-  #
-  # With orientation_condition_scaling=false, orientation is not softened by
-  # conditioning logic. This is fine while all orientation gains are zero.
-  # ---------------------------------------------------------------------------
-  condition_soft_limit: 500.0
-  condition_hard_limit: 2000.0
-  orientation_condition_scaling: false
+    # Global multiplier on the operational acceleration reference.
+    task_acceleration_scale: 0.5
 
-  # ---------------------------------------------------------------------------
-  # Effort safety.
-  #
-  # effort_limit is a scalar fallback.
-  # joint_effort_limits can be expanded by the generator as:
-  #   [first_joint_limit, all_other_joints_limit]
-  #
-  # For the current convention:
-  #   first active joint: 80 Nm
-  #   remaining active joints: 55 Nm
-  # ---------------------------------------------------------------------------
-  effort_limit: 80.0
-  joint_effort_limits: [80.0, 55.0]
+    # ---------------------------------------------------------------------------
+    # Jacobian conditioning safety.
+    #
+    # With orientation_condition_scaling=false, orientation is not softened by
+    # conditioning logic. This is fine while all orientation gains are zero.
+    # ---------------------------------------------------------------------------
+    condition_soft_limit: 500.0
+    condition_hard_limit: 2000.0
+    orientation_condition_scaling: true
 
-  # ---------------------------------------------------------------------------
-  # Velocity-limit torque safety filter.
-  #
-  # This does not change URDF limits. It modifies commanded torque near velocity
-  # limits so the controller does not keep pushing a joint further into the
-  # velocity bound.
-  # ---------------------------------------------------------------------------
-  enforce_velocity_limits: true
-  default_velocity_limit: 4.0841
-  velocity_soft_margin: 0.25
-  velocity_brake_gain: 15.0
-  joint_velocity_limits: [4.0841]
+    # ---------------------------------------------------------------------------
+    # Effort safety.
+    #
+    # effort_limit is a scalar fallback.
+    # joint_effort_limits can be expanded by the generator as:
+    #   [first_joint_limit, all_other_joints_limit]
+    #
+    # For the current convention:
+    #   first active joint: 80 Nm
+    #   remaining active joints: 55 Nm
+    # ---------------------------------------------------------------------------
+    effort_limit: 80.0
+    joint_effort_limits: [80.0, 55.0]
 
-  # ---------------------------------------------------------------------------
-  # Debug publishing.
-  #
-  # publish_full_debug_state=true should publish:
-  #   task_force
-  #   task_moment
-  #   task_torque
-  #   gravity_torque
-  #   commanded_torque
-  #   jacobian_condition
-  #   jacobian_singular_values
-  #   jacobian_column_norms
-  #   sliding_variable
-  #   nominal_wrench
-  #   robust_wrench
-  #   adaptive_wrench
-  #   adaptive_rho
-  # ---------------------------------------------------------------------------
-  publish_error_state: true
-  publish_desired_state: true
-  publish_current_state: true
-  publish_full_debug_state: true    
+    # ---------------------------------------------------------------------------
+    # Velocity-limit torque safety filter.
+    #
+    # This does not change URDF limits. It modifies commanded torque near velocity
+    # limits so the controller does not keep pushing a joint further into the
+    # velocity bound.
+    # ---------------------------------------------------------------------------
+    enforce_velocity_limits: true
+    default_velocity_limit: 4.0841
+    velocity_soft_margin: 0.25
+    velocity_brake_gain: 15.0
+    joint_velocity_limits: [4.0841]
+
+    # ---------------------------------------------------------------------------
+    # Debug publishing.
+    #
+    # publish_full_debug_state=true should publish:
+    #   task_force
+    #   task_moment
+    #   task_torque
+    #   gravity_torque
+    #   commanded_torque
+    #   jacobian_condition
+    #   jacobian_singular_values
+    #   jacobian_column_norms
+    #   sliding_variable
+    #   nominal_wrench
+    #   robust_wrench
+    #   adaptive_wrench
+    #   adaptive_rho
+    # ---------------------------------------------------------------------------
+    publish_error_state: true
+    publish_desired_state: true
+    publish_current_state: true
+    publish_full_debug_state: true    
+  cartesian_robust_impedance:
+    # ---------------------------------------------------------------------------
+    # Robust Impedance Controller, RIC
+    #
+    # Free-space impedance version for now:
+    #
+    #   a_imp = task_acceleration_scale *
+    #           M_imp^{-1} (D_imp * e_dot + K_imp * e)
+    #
+    #   s = e_dot + Lambda * e
+    #
+    #   W_nom = Mx * a_imp + Cx + Gx
+    #   W_rob = K1 * s + K2 * tanh(kappa * s)
+    #   tau   = Jx^T * (W_nom + W_rob)
+    #
+    # TCP external wrench will be added in the next step.
+    # ---------------------------------------------------------------------------
+
+    # Desired Cartesian impedance model.
+    # Position entries: x, y, z.
+    # Orientation entries: rx, ry, rz.
+    impedance_mass_position: [2.5, 2.5, 2.5]
+    impedance_damping_position: [90.0, 90.0, 120.0]
+    impedance_stiffness_position: [1200.0, 1200.0, 1600.0]
+
+    impedance_mass_orientation: [1.0, 1.0, 1.0]
+    impedance_damping_orientation: [0.0, 0.0, 0.0]
+    impedance_stiffness_orientation: [0.0, 0.0, 0.0]
+
+    # Kept for compatibility with the copied RIDOSC parameter parser.
+    # In the new RIC command law, impedance_* gains generate a_imp.
+    kp_position: [200.0, 200.0, 200.0]
+    kd_position: [20.0, 20.0, 20.0]
+    kp_orientation: [0.0, 0.0, 0.0]
+    kd_orientation: [0.0, 0.0, 0.0]
+
+    # Robust sliding variable.
+    lambda_position: [15.0, 15.0, 15.0]
+    lambda_orientation: [0.0, 0.0, 0.0]
+
+    # Robust wrench term.
+    k1_position: [50.0, 50.0, 50.0]
+    k1_orientation: [0.0, 0.0, 0.0]
+
+    k2_position: [50.0, 50.0, 50.0]
+    k2_orientation: [0.0, 0.0, 0.0]
+
+    tanh_kappa: 25.0
+
+    hold_initial_position: true
+    x_des: []
+    xdot_des: []
+    orientation_des: []
+
+    kinematics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+    dynamics_data_dir: "/home/nikos/ros2_ws/src/smm_class_pkgs/smm_data/synthesis/yaml"
+
+    gravity_representation: "body"
+    fixed_frame: "world"
+
+    operational_dynamics_method: "exact_with_damped_fallback"
+    operational_damping: 0.05
+
+    # For impedance, 1.0 is OK because M_imp already scales the response.
+    # If it is aggressive, reduce to 0.5.
+    task_acceleration_scale: 0.5
+
+    condition_soft_limit: 500.0
+    condition_hard_limit: 2000.0
+    orientation_condition_scaling: true
+
+    effort_limit: 80.0
+    joint_effort_limits: [80.0, 55.0]
+
+    enforce_velocity_limits: true
+    default_velocity_limit: 4.0841
+    velocity_soft_margin: 0.25
+    velocity_brake_gain: 15.0
+    joint_velocity_limits: [4.0841]
+
+    publish_error_state: true
+    publish_desired_state: true
+    publish_current_state: true
+    publish_full_debug_state: true
+    # ---------------------------------------------------------------------------
+    # External TCP interaction wrench.
+    #
+    # Required convention:
+    #   external_wrench = environment-on-robot wrench at TCP,
+    #                     expressed in fixed_frame/world.
+    #
+    # Raw force_sensor_meas_frame data must be transformed before this controller.
+    # ---------------------------------------------------------------------------
+    use_external_wrench: true
+    subtract_external_wrench_from_command: true
+    require_external_wrench_frame_match: true
+
+    external_wrench_sign: 1.0
+    external_wrench_timeout: 0.2
+    external_wrench_filter_alpha: 0.2
+
+    external_wrench_deadband_force: 0.2
+    external_wrench_deadband_torque: 0.02
+
+    external_wrench_limit_force: 50.0
+    external_wrench_limit_torque: 10.0
+
+    desired_wrench_position: [0.0, 0.0, 0.0]
+    desired_wrench_orientation: [0.0, 0.0, 0.0]
